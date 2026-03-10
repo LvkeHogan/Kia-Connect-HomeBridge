@@ -1,5 +1,5 @@
 {
-  "name": "homebridge-kia-connect",
+  "name": "homebridge-kia-connect-new",
   "version": "1.0.0",
   "description": "HomeBridge plugin for Kia Connect (EV6 and other Kia EVs) — lock/unlock, remote climate, battery level and range via Apple Home and Siri",
   "license": "GPL-3.0",
