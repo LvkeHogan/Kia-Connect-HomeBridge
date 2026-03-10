@@ -250,25 +250,70 @@ export class KiaClient {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseStatus(raw: any): VehicleStatus {
-    const evStatus = raw?.evStatus ?? raw?.evInfo ?? null;
+    // bluelinky v10 parsed status shape:
+    //   chassis.locked, engine.batteryChargeHV, engine.rangeEV,
+    //   engine.charging, engine.plugedTo, climate.active
+    //
+    // Older versions used flat fields: doorLock, airCtrlOn, evStatus.*
+    // We check both so the plugin tolerates library version differences.
 
-    // Range: bluelinky may return unit 0 = km, unit 1 = miles
+    // --- Lock ---
+    const doorLock: boolean | undefined =
+      raw?.chassis?.locked ?? raw?.doorLock ?? undefined;
+
+    // --- Climate ---
+    const climateActive: boolean | undefined =
+      raw?.climate?.active ?? raw?.airCtrlOn ?? undefined;
+
+    // --- EV battery SOC (%) ---
+    // v10: engine.batteryChargeHV  |  older: evStatus.batteryStatus (number or {stateOfCharge})
+    const evStatus = raw?.evStatus ?? raw?.evInfo ?? null;
+    let batteryChargePct: number | undefined =
+      raw?.engine?.batteryChargeHV ?? evStatus?.batteryStatus ?? undefined;
+    if (typeof batteryChargePct === 'object' && batteryChargePct !== null) {
+      // Some older responses nest SOC inside an object
+      batteryChargePct = (batteryChargePct as { stateOfCharge?: number }).stateOfCharge;
+    }
+
+    // --- Charging / plugged-in ---
+    // v10: engine.charging, engine.plugedTo (note Kia typo in the API)
+    // older: evStatus.batteryCharge, evStatus.batteryPlugin
+    const isCharging: boolean | undefined =
+      raw?.engine?.charging ?? evStatus?.batteryCharge ?? undefined;
+
+    let isPluggedIn: boolean | undefined;
+    const plugedTo = raw?.engine?.plugedTo ?? evStatus?.batteryPlugin;
+    if (plugedTo !== undefined) {
+      isPluggedIn = plugedTo !== 0;
+    }
+
+    // --- Range (normalised to km) ---
+    // v10: engine.rangeEV (miles in US, km in EU)
+    // older: evStatus.drvDistance[0].rangeByFuel.{totalAvailableRange|evModeRange}.{value, unit}
     let rangeKm: number | undefined;
-    const drvDist = evStatus?.drvDistance?.[0];
-    if (drvDist) {
-      const range = drvDist.rangeByFuel?.totalAvailableRange ?? drvDist.rangeByFuel?.evModeRange;
-      if (range?.value !== undefined) {
-        // unit 0 = km, unit 1 = miles — normalise to km
-        rangeKm = range.unit === 1 ? Math.round(range.value * 1.60934) : range.value;
+    const rangeEV = raw?.engine?.rangeEV;
+    if (rangeEV !== undefined && rangeEV !== null) {
+      // v10 returns miles for US accounts; EU returns km.
+      // bluelinky normalises to the account's unit setting, so we check
+      // the climate.temperatureUnit as a proxy (0=C=EU/km, 1=F=US/miles).
+      const usesImperial = raw?.climate?.temperatureUnit === 1;
+      rangeKm = usesImperial ? Math.round(rangeEV * 1.60934) : rangeEV;
+    } else {
+      const drvDist = evStatus?.drvDistance?.[0];
+      if (drvDist) {
+        const range = drvDist.rangeByFuel?.totalAvailableRange ?? drvDist.rangeByFuel?.evModeRange;
+        if (range?.value !== undefined) {
+          rangeKm = range.unit === 1 ? Math.round(range.value * 1.60934) : range.value;
+        }
       }
     }
 
     return {
-      doorLock: raw?.doorLock ?? undefined,
-      climateActive: raw?.airCtrlOn ?? raw?.climate?.active ?? undefined,
-      batteryChargePct: evStatus?.batteryStatus ?? evStatus?.batteryStatus?.stateOfCharge ?? undefined,
-      isCharging: evStatus?.batteryCharge ?? (evStatus?.plugStatus === true ? true : undefined),
-      isPluggedIn: evStatus?.batteryPlugin !== undefined ? evStatus.batteryPlugin !== 0 : undefined,
+      doorLock,
+      climateActive,
+      batteryChargePct,
+      isCharging,
+      isPluggedIn,
       rangeKm,
       fetchedAt: Date.now(),
     };
@@ -292,13 +337,18 @@ export class KiaClient {
 
   async startClimate(vin: string, options: ClimateOptions): Promise<void> {
     await this.executeCommand(vin, 'startClimate', async (vehicle) => {
+      // bluelinky v10 VehicleStartOptions:
+      //   airCtrl       — enable A/C / fan
+      //   igniOnDuration — minutes (max 10 per Kia Connect limit)
+      //   airTempvalue  — temperature in the account's unit (C or F)
+      //   defrost       — rear + front defrost
+      //   heating1      — seat/steering wheel heating
       await vehicle.start({
-        hvac: true,
-        heating: options.heating ? 1 : 0,
-        temperature: options.temperatureCelsius,
+        airCtrl: true,
+        igniOnDuration: 10,
+        airTempvalue: options.temperatureCelsius,
         defrost: options.defrost ?? false,
-        windshieldHeating: options.defrost ?? false,
-        duration: 10,   // max allowed by Kia Connect (10 minutes)
+        heating1: options.heating ?? false,
       });
     });
   }

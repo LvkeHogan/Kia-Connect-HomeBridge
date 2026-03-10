@@ -27,7 +27,7 @@
     "homebridge": ">=1.6.0"
   },
   "dependencies": {
-    "bluelinky": "^7.0.0"
+    "bluelinky": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
