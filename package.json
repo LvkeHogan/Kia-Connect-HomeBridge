@@ -17,8 +17,8 @@
     "siri"
   ],
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "build": "node_modules/.bin/tsc",
+    "watch": "node_modules/.bin/tsc --watch",
     "lint": "eslint src/ --ext .ts",
     "prepublishOnly": "npm run lint && npm run build"
   },
