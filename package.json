@@ -1,0 +1,43 @@
+{
+  "name": "homebridge-kia-connect",
+  "version": "1.0.0",
+  "description": "HomeBridge plugin for Kia Connect (EV6 and other Kia EVs) — lock/unlock, remote climate, battery level and range via Apple Home and Siri",
+  "license": "GPL-3.0",
+  "main": "dist/index.js",
+  "keywords": [
+    "homebridge-plugin",
+    "kia",
+    "kia-connect",
+    "kia-uvo",
+    "ev6",
+    "ev",
+    "homekit",
+    "homebridge",
+    "apple-home",
+    "siri"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint src/ --ext .ts",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "homebridge": ">=1.6.0"
+  },
+  "dependencies": {
+    "bluelinky": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "homebridge": "^1.8.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "homebridge": ">=1.6.0"
+  }
+}
