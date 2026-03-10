@@ -1,0 +1,105 @@
+{
+  "pluginAlias": "KiaConnect",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Kia Connect HomeBridge Plugin — Connects your Kia EV to Apple Home and Siri.\n\nUse your **owners.kia.com** login credentials. Your PIN is the 4-digit PIN set in the Kia Connect app.\n\n**Rate limits (US):** ~30 API calls/day. The default 60-minute poll interval keeps usage within this budget. Reduce it at your own risk.\n\n**12V Battery warning:** Using `refresh: car` (direct car polling) frequently will drain your 12V auxiliary battery. The default uses the cloud cache only.",
+  "footerDisplay": "For help, visit the [plugin GitHub page](https://github.com/LvkeHogan/Kia-Connect-HomeBridge).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "Kia Connect",
+        "description": "Internal name for this platform instance."
+      },
+      "username": {
+        "title": "Kia Connect Username (Email)",
+        "type": "string",
+        "format": "email",
+        "required": true,
+        "description": "The email address you use to log in at owners.kia.com."
+      },
+      "password": {
+        "title": "Kia Connect Password",
+        "type": "string",
+        "required": true,
+        "description": "Your owners.kia.com password."
+      },
+      "pin": {
+        "title": "Kia Connect PIN",
+        "type": "string",
+        "required": true,
+        "minLength": 4,
+        "maxLength": 4,
+        "pattern": "^[0-9]{4}$",
+        "description": "Your 4-digit PIN from the Kia Connect app (used to authorise remote commands)."
+      },
+      "region": {
+        "title": "Region",
+        "type": "string",
+        "required": true,
+        "default": "US",
+        "oneOf": [
+          { "title": "United States (US)", "enum": ["US"] },
+          { "title": "Canada (CA)", "enum": ["CA"] },
+          { "title": "Europe (EU)", "enum": ["EU"] },
+          { "title": "Australia (AU)", "enum": ["AU"] }
+        ],
+        "description": "The region for your Kia Connect account. This controls which API server is used."
+      },
+      "vehicleId": {
+        "title": "Vehicle VIN (optional)",
+        "type": "string",
+        "description": "VIN of the vehicle to use. If left blank the first vehicle on your account is used. Required if you have multiple vehicles."
+      },
+      "pollIntervalMinutes": {
+        "title": "Status Poll Interval (minutes)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 15,
+        "maximum": 1440,
+        "description": "How often to refresh vehicle status from the Kia Connect cloud. US accounts have ~30 API calls/day — keep this at 60 or higher to stay within limits. EU accounts can safely use 30."
+      },
+      "climateTemperatureCelsius": {
+        "title": "Remote Climate Target Temperature (°C)",
+        "type": "number",
+        "default": 22,
+        "minimum": 16,
+        "maximum": 30,
+        "description": "The target cabin temperature when remote climate is started (in Celsius). 22°C is a comfortable default."
+      },
+      "lowBatteryThreshold": {
+        "title": "Low Battery Alert Threshold (%)",
+        "type": "integer",
+        "default": 20,
+        "minimum": 5,
+        "maximum": 50,
+        "description": "The state-of-charge percentage below which the battery is considered 'low' and triggers a Home notification."
+      },
+      "modelName": {
+        "title": "Vehicle Model Name",
+        "type": "string",
+        "default": "EV6",
+        "description": "Display name for the vehicle model shown in Apple Home (e.g. EV6, EV9, Niro EV)."
+      }
+    }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "Account Credentials",
+      "items": ["username", "password", "pin", "region"]
+    },
+    {
+      "type": "fieldset",
+      "title": "Vehicle",
+      "items": ["vehicleId", "modelName"]
+    },
+    {
+      "type": "fieldset",
+      "title": "Behaviour",
+      "items": ["pollIntervalMinutes", "climateTemperatureCelsius", "lowBatteryThreshold"]
+    }
+  ]
+}
